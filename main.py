@@ -2,17 +2,15 @@ from fastapi import FastAPI, Depends, HTTPException
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
 from typing import List
-
 from database import SessionLocal, engine
-from models import Task, Base
+from models import Book, Base
+# Create tables in the database
 
-# Create tables in the database (only do this if you want to auto-create them)
-# Remove or comment out the line below if you're using an existing Django-created table
-# Base.metadata.create_all(bind=engine)
+Base.metadata.create_all(bind=engine)
 
 app = FastAPI()
 
-# Dependency to get DB session
+# Dependency to get the database session
 def get_db():
     db = SessionLocal()
     try:
@@ -20,27 +18,27 @@ def get_db():
     finally:
         db.close()
 
-# Pydantic models
-class TaskCreate(BaseModel):
+# Pydantic model to use in FastAPI request and response
+class BookCreate(BaseModel):
     title: str
-    is_completed: bool = False
+    author: str
 
-class TaskOut(TaskCreate):
+class BookOut(BookCreate):
     id: int
 
     class Config:
         orm_mode = True
-
-# Endpoint to fetch all tasks
-@app.get("/tasks", response_model=List[TaskOut])
-def get_tasks(db: Session = Depends(get_db)):
-    return db.query(Task).all()
-
-# Endpoint to add a new task
-@app.post("/tasks", response_model=TaskOut)
-def add_task(task: TaskCreate, db: Session = Depends(get_db)):
-    db_task = Task(**task.dict())
-    db.add(db_task)
+# Endpoint to fetch all books
+@app.get("/books", response_model=List[BookOut])
+def get_books(db: Session = Depends(get_db)):
+    books = db.query(Book).all()
+    return books
+    
+# Endpoint to add a new book
+@app.post("/books", response_model=BookOut)
+def add_book(book: BookCreate, db: Session = Depends(get_db)):
+    db_book = Book(title=book.title, author=book.author)
+    db.add(db_book)
     db.commit()
-    db.refresh(db_task)
-    return db_task
+    db.refresh(db_book)
+    return db_book
